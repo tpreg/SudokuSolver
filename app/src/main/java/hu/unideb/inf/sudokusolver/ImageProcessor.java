@@ -76,8 +76,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 public final class ImageProcessor {
-
-	private static final int SCALING_SIZE = 765;
+	private static final int SCALING_SIZE = 810;
 	private static final int CELL_SIZE = SCALING_SIZE / 9;
 	private static final Size SIZE = new Size(SCALING_SIZE, SCALING_SIZE);
 
@@ -91,7 +90,6 @@ public final class ImageProcessor {
 				final var borderMask = zeros(cell.rows() + 2, cell.cols() + 2, CV_8UC1);
 				floodFill(cell, borderMask, new Point(0, 0), Scalar.all(0));
 				final var noBorder = cell.rowRange(1, cell.rows() - 1).colRange(1, cell.cols() - 1);
-
 				final var contours = new ArrayList<MatOfPoint>();
 				findContours(noBorder, contours, new Mat(), RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 				final var max = contours.stream().max(comparingDouble(Imgproc::contourArea));
@@ -102,10 +100,8 @@ public final class ImageProcessor {
 					final var percentFilled = countNonZero(mask) / (double) (CELL_SIZE * CELL_SIZE);
 					if (percentFilled > 0.04) {
 						noBorder.copyTo(dst, mask);
-//						final var resizedDst = resizeImage(dst, new Size(dst.width() * 0.7, dst.height() * 0.7));
 						erode(dst, dst, getStructuringElement(MORPH_CROSS, new Size(3, 3)));
 						final var mob = new MatOfByte();
-//						imencode(".png", resizedDst, mob);
 						imencode(".png", dst, mob);
 						digits.add(imgToInteger(tess, mob.toArray()));
 					} else {
@@ -119,7 +115,6 @@ public final class ImageProcessor {
 		return digits.toArray(Integer[]::new);
 	}
 
-
 	private static Integer imgToInteger(final TessBaseAPI tess, final byte[] image) {
 		tess.setImage(BitmapFactory.decodeStream(new ByteArrayInputStream(image)));
 		final var possibleNumber = tess.getUTF8Text().trim();
@@ -132,21 +127,16 @@ public final class ImageProcessor {
 		bitmapToMat(bmp32, mat);
 		final var resized = resizeImage(mat);
 		fastNlMeansDenoising(resized, resized);
-
 		final var grayscale = colorToGrayscale(resized);
 		final var grid = perspectiveTransform(grayscale);
 		normalize(grid, grid, 0, 255, NORM_MINMAX, CV_8UC1);
-
 		final var edges = new Mat();
 		final var blurredGrid = getGaussianBlur(grid, 7);
 		Canny(blurredGrid, edges, 100, 300, 5, true);
-
 		final var horizontalLines = houghHorizontal(edges);
 		final var verticalLines = houghVertical(edges);
-
 		final var gridPoints = new Mat();
 		bitwise_and(horizontalLines, verticalLines, gridPoints);
-
 		return correctDefects(gridPoints, grid);
 	}
 
@@ -178,7 +168,6 @@ public final class ImageProcessor {
 				.stream() //
 				.flatMap(identity()) //
 				.toArray(Point[]::new);
-
 		final var srcVertices = new MatOfPoint2f(points);
 		final var dstVertices = new MatOfPoint2f(new Point(0, 0), //
 				new Point(SCALING_SIZE, 0), //
@@ -195,7 +184,6 @@ public final class ImageProcessor {
 		final var contours = new ArrayList<MatOfPoint>();
 		final var hierarchy = new Mat();
 		findContours(adaptiveThreshold, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
-
 		final var curve = new MatOfPoint2f();
 		contours.stream() //
 				.max(comparingDouble(Imgproc::contourArea)) //
@@ -203,7 +191,6 @@ public final class ImageProcessor {
 						() -> {
 							throw new IllegalStateException("Could not find largest contour.");
 						});
-
 		final var largestRectangle = new MatOfPoint2f();
 		final var approxCurve = new MatOfPoint2f();
 		var i = 1;
@@ -256,7 +243,6 @@ public final class ImageProcessor {
 	private static Mat correctDefects(final Mat gridPoints, final Mat grid) {
 		final var contours = new ArrayList<MatOfPoint>();
 		findContours(gridPoints, contours, new Mat(), RETR_LIST, CHAIN_APPROX_SIMPLE);
-
 		final var counter = new AtomicInteger();
 		final var sortedCentroids = contours.stream() //
 				.map(Imgproc::moments) //
@@ -269,11 +255,9 @@ public final class ImageProcessor {
 						.sorted(comparingDouble(c -> c.x)) //
 						.collect(toList())) //
 				.collect(toList());
-
 		if (counter.get() != 100) {
 			throw new IllegalStateException("Could not find all grid points");
 		}
-
 		final var output = zeros(SIZE, CV_8UC1);
 		IntStream.range(0, 100).forEach(i -> {
 			final var ri = i / 10;
@@ -295,7 +279,6 @@ public final class ImageProcessor {
 		});
 		return output;
 	}
-
 
 	private static Mat houghHorizontal(final Mat edges) {
 		final var lines = new Mat();
