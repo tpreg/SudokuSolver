@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Sudoku Solver</string>
+    <string name="browse">Browse</string>
+    <string name="solve">Solve</string>
+    <string name="camera">Camera</string>
+    <string name="left">Left</string>
+    <string name="right">Right</string>
+    <string name="sudokuPuzzle" translatable="false">sudokuPuzzle</string>
+</resources>
